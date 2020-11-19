@@ -251,6 +251,13 @@ pub(crate) enum RespValue {
 }
 
 impl RespValue {
+    pub(crate) fn as_bulk_string(&self) -> Option<&Vec<u8>> {
+        if let Self::BulkString(bytes) = self {
+            Some(bytes)
+        } else {
+            None
+        }
+    }
     pub(crate) fn as_str(&self) -> Result<&str, EngineError> {
         match self {
             Self::SimpleString(s) => Ok(&s),

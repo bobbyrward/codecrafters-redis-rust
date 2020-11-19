@@ -60,14 +60,20 @@ impl Client {
                                 )));
                             }
 
-                            let command_string = values[0].as_str()?;
+                            let command_string = values[0].as_str()?.to_ascii_uppercase();
 
                             eprintln!("Client sent command: {}", command_string);
 
-                            match command_string {
+                            match command_string.as_str() {
                                 "PING" => {
-                                    eprintln!("PING");
-                                    let response = RespValue::simple_string("PONG");
+                                    let response = match values.len() {
+                                        1 => RespValue::simple_string("PONG"),
+                                        2 => values[1].clone(),
+                                        _ => return Err(EngineError::unknown(&format!("Client sent weird ping command: {:?}", values))),
+                                    };
+
+                                    eprintln!("Responding with: {:?}", response);
+
                                     self.socket.write_all(&response.encode()?).await?;
                                 }
                                 "COMMAND" => {
