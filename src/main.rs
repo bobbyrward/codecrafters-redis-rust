@@ -1,15 +1,15 @@
-#[allow(unused_imports)]
-use std::env;
-#[allow(unused_imports)]
-use std::fs;
-#[allow(unused_imports)]
-use std::net::TcpListener;
+#![allow(dead_code)]
+#![allow(unused_imports)]
+mod client;
+mod engine;
+mod error;
+mod resp;
+mod server;
 
-fn main() {
-    // Uncomment this block to pass the first stage
-    let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
-    match listener.accept() {
-        Ok((_socket, addr)) => println!("accepted new client: {:?}", addr),
-        Err(e) => println!("couldn't accept client: {:?}", e),
-    }
+use std::error::Error;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+    crate::server::serve("127.0.0.1:6379").await?;
+    Ok(())
 }
