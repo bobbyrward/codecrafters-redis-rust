@@ -46,11 +46,11 @@ impl Client {
                     return Ok(());
                 }
 
-                eprintln!("Bytes received; len={}, {:?}", buffer.len(), &buffer[..]);
+                // eprintln!("Bytes received; len={}, {:?}", buffer.len(), &buffer[..]);
 
                 loop {
                     if let Some(command) = RespValue::from_buf(&mut buffer)? {
-                        eprintln!("New command: {:?}", command);
+                        // eprintln!("New command: {:?}", command);
 
                         if let RespValue::Array(values) = command {
                             if values.len() < 1 {
@@ -62,7 +62,7 @@ impl Client {
 
                             let command_string = values[0].as_str()?.to_ascii_uppercase();
 
-                            eprintln!("Client sent command: {}", command_string);
+                            eprintln!("Client sent command: {} ({:?})", command_string, &values[1..]);
 
                             match command_string.as_str() {
                                 "PING" => {

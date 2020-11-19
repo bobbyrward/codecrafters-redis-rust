@@ -231,8 +231,6 @@ fn resp_encode(value: &RespValue) -> Result<Vec<u8>, EngineError> {
 
 fn from_buf(buffer: &mut BytesMut) -> Result<Option<RespValue>, EngineError> {
     if let Some((value, position)) = resp_read_value(buffer, 0)? {
-        eprintln!("Position = {}", position);
-        eprintln!("Buffer = {:?}", buffer);
         buffer.advance(position);
         Ok(Some(value))
     } else {

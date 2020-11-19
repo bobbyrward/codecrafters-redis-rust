@@ -10,6 +10,8 @@ use std::error::Error;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+    eprintln!("Server starting");
     crate::server::serve("127.0.0.1:6379").await?;
+    eprintln!("Server shutting down");
     Ok(())
 }
