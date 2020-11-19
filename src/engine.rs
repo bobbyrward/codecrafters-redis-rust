@@ -1,40 +1,61 @@
-use tokio::sync::{mpsc, oneshot};
+use std::collections::HashMap;
+use tokio::sync::RwLock;
 
+use crate::resp::RespValue;
 use crate::error::EngineError;
 
-const ENGINE_COMMAND_QUEUE_SIZE: usize = 64;
 
-pub(crate) type PingResponseSender = oneshot::Sender<()>;
-pub(crate) type PingResponseReceiver = oneshot::Receiver<()>;
-
-pub(crate) type EngineCommandSender = mpsc::Sender<EngineCommand>;
-pub(crate) type EngineCommandReceiver = mpsc::Receiver<EngineCommand>;
-
-pub(crate) enum EngineCommand {
-    Ping { responder: PingResponseSender },
-    Shutdown,
+#[derive(Debug)]
+pub(crate) struct Cache {
+    store: RwLock<HashMap<String, RespValue>>,
 }
 
-pub(crate) struct Engine {
-    command_receiver: EngineCommandReceiver,
-    command_sender: EngineCommandSender,
-}
-
-impl Engine {
-    pub(crate) async fn new() -> Self {
-        let (tx, rx) = mpsc::channel(ENGINE_COMMAND_QUEUE_SIZE);
-
+impl Cache {
+    pub(crate) fn new() -> Self {
         Self {
-            command_receiver: rx,
-            command_sender: tx,
+            store: RwLock::new(HashMap::new()),
         }
     }
 
-    pub(crate) fn event_sender(&self) -> &EngineCommandSender {
-        &self.command_sender
+    pub(crate) async fn get(&self, key: &str) -> Result<RespValue, EngineError> {
+        let readonly_store = self.store.read().await;
+
+        Ok(match readonly_store.get(key) {
+            Some(value) => {
+                if value.is_simple_string() || value.is_bulk_string() {
+                    value.clone()
+                } else {
+                    RespValue::error("Value isn't a string")
+                }
+            }
+            None => RespValue::Null,
+        })
     }
 
-    pub(crate) async fn process(&mut self) -> Result<(), EngineError> {
-        Ok(())
+    pub(crate) async fn get_str(&self, key: &str) -> Result<RespValue, EngineError> {
+        let value = self.get(key).await?;
+
+        if value.is_simple_string() || value.is_bulk_string() {
+            Ok(value)
+        } else {
+            Ok(RespValue::error("Value isn't a string"))
+        }
     }
+
+    pub(crate) async fn set(&self, key: &str, value: RespValue) -> Result<RespValue, EngineError> {
+        eprintln!("SETTING '{}' to  '{:?}'", key, value);
+        let mut store = self.store.write().await;
+        store.insert(key.to_string(), value);
+        Ok(RespValue::simple_string("OK"))
+    }
+
+    pub(crate) async fn set_str(&self, key: &str, value:RespValue) -> Result<RespValue, EngineError> {
+        if value.is_simple_string() || value.is_bulk_string() {
+            Ok(self.set(key, value).await?)
+        } else {
+            Ok(RespValue::error("Value isn't a string"))
+        }
+    }
+
 }
+

@@ -1,12 +1,13 @@
+use std::sync::Arc;
+
 use tokio::sync::mpsc;
 
 use crate::error::EngineError;
-//use crate::engine::{Engine, EngineCommand};
 use crate::client::Client;
+use crate::Cache;
 
 const ACCEPTOR_QUEUE_SIZE: usize = 64;
 
-// type AcceptorSender = mpsc::Sender<Client>;
 type AcceptorReceiver = mpsc::Receiver<Client>;
 
 async fn listen<A>(bind_address: A) -> Result<AcceptorReceiver, EngineError>
@@ -35,29 +36,22 @@ where
     Ok(rx)
 }
 
-pub(crate) async fn serve<A>(bind_address: A) -> Result<(), EngineError>
+pub(crate) async fn serve<A>(bind_address: A, cache: Arc<Cache>) -> Result<(), EngineError>
 where
     A: tokio::net::ToSocketAddrs,
 {
-    /*
-    let mut engine = Engine::new().await;
-    let command_sender = engine.event_sender().clone();
-
-    let engine_task = tokio::spawn(async move {
-        engine.process().await
-    });
-    */
-
     let mut acceptor = listen(bind_address).await?;
 
     loop {
         tokio::select! {
             evt = acceptor.recv() => {
                 if let Some(client) = evt {
+                    let client_cache = cache.clone();
+
                     tokio::spawn(async move {
                         let mut client = client;
 
-                        if let Err(err) = client.process().await {
+                        if let Err(err) = client.process(client_cache).await {
                             eprintln!("Error from Client::process; {}", err);
                         }
                     });
@@ -70,14 +64,6 @@ where
             }
         }
     }
-
-    /*
-    let send_result = command_sender.send_timeout(EngineCommand::Shutdown, tokio::time::Duration::from_secs(1)).await;
-
-    if send_result.is_ok() {
-        engine_task.await?;
-    }
-    */
 
     Ok(())
 }

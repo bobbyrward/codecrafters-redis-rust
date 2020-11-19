@@ -281,6 +281,26 @@ impl RespValue {
         matches!(self, Self::Array(_))
     }
 
+    pub(crate) fn is_simple_string(&self) -> bool {
+        matches!(self, Self::SimpleString(_))
+    }
+
+    pub(crate) fn is_error(&self) -> bool {
+        matches!(self, Self::Error(_))
+    }
+
+    pub(crate) fn is_integer(&self) -> bool {
+        matches!(self, Self::Integer(_))
+    }
+
+    pub(crate) fn is_bulk_string(&self) -> bool {
+        matches!(self, Self::BulkString(_))
+    }
+
+    pub(crate) fn is_null(&self) -> bool {
+        matches!(self, Self::Null)
+    }
+
     pub(crate) fn simple_string(value: &str) -> Self {
         Self::SimpleString(value.to_string())
     }
